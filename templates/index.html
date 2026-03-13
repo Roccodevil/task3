@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Explainer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; max-width: 800px; }
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        #result-box { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #007BFF; display: none; white-space: pre-wrap;}
+        #loading { display: none; color: #007BFF; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>📄 Agentic Document & Diagram Explainer</h2>
+        <p>Upload a file to route through the local Ollama LLM and custom PyTorch Vision model.</p>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <input type="file" id="document" name="document" required>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="web_search" name="web_search" value="true" checked>
+                    Enable Tavily Web Search
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>Output Format: </label>
+                <select id="output_format" name="output_format">
+                    <option value="text">Text Report</option>
+                    <option value="audio">Speech (Audio)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="conf_threshold">Confidence Threshold (0-1): </label>
+                <input type="number" id="conf_threshold" name="conf_threshold" min="0" max="1" step="0.01" value="0.05">
+            </div>
+
+            <div class="form-group">
+                <label for="anchor_priors">Anchor Priors (JSON): </label>
+                <input type="text" id="anchor_priors" name="anchor_priors" value='[[0.2,0.2],[0.35,0.25],[0.5,0.4]]'>
+            </div>
+
+            <button type="submit">Generate Explanation</button>
+        </form>
+
+        <p id="loading">Agents are processing... Please wait.</p>
+        
+        <div id="result-box">
+            <h3>Final Compiled Report</h3>
+            <div id="report-content"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('document', document.getElementById('document').files[0]);
+            formData.append('web_search', document.getElementById('web_search').checked);
+            formData.append('output_format', document.getElementById('output_format').value);
+            formData.append('conf_threshold', document.getElementById('conf_threshold').value);
+            formData.append('anchor_priors', document.getElementById('anchor_priors').value);
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-box').style.display = 'none';
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('report-content').innerText = data.report;
+                    document.getElementById('result-box').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Request failed: ' + err);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

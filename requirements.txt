@@ -1,0 +1,26 @@
+ # Orchestration & Agents
+ langgraph
+ langchain
+ crewai
+ llama-index
+ tavily-python
+
+ # Local LLM & Vector DB
+ langchain-community
+ pinecone-client
+ sentence-transformers
+
+ # Document Parsing
+ pymupdf
+ python-pptx
+ pandas
+ openpyxl
+ xlrd
+
+ # Vision (From previous steps)
+ #torch torchvision --index-url https://download.pytorch.org/whl/cpu
+ opencv-python
+ matplotlib
+ pillow
+
+ flask
