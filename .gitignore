@@ -31,9 +31,7 @@ data/temp_images/
 output/
 
 # Optional large/local model artifacts
-models/*.pth
-models/*.pt
-models/*.onnx
+
 
 # Logs and temp files
 *.log
