@@ -2,7 +2,7 @@ from typing import TypedDict, List, Dict, Any
 from langgraph.graph import StateGraph, END
 from src.agents.data_agent import process_document
 from src.vision_model import run_vision_inference_simple
-# from src.agents.explainer_agent import explain_with_ollama
+from src.agents.explainer_agent import explain_with_ollama
 
 # 1. Define the State
 class AgenticState(TypedDict):
@@ -42,9 +42,11 @@ def vision_processing_node(state: AgenticState):
 
 
 def text_processing_node(state: AgenticState):
-    print("--- ROUTING TEXT TO LOCAL OLLAMA & PINECONE ---")
-    # explanation = explain_with_ollama(state["raw_text"])
-    explanation = "Simulated Ollama Explanation."
+    print("--- ROUTING TEXT TO LOCAL OLLAMA & CHROMA ---")
+    explanation = explain_with_ollama(
+        state["raw_text"],
+        enable_web_search=bool(state.get("needs_web_search", False))
+    )
     return {"text_insights": explanation}
 
 

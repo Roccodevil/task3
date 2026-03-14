@@ -7,7 +7,8 @@
 
  # Local LLM & Vector DB
  langchain-community
- pinecone-client
+chromadb
+langchain-chroma
  sentence-transformers
 
  # Document Parsing
