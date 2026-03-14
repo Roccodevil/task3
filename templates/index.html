@@ -1,98 +1,873 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic Explainer</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; max-width: 800px; }
-        .container { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
-        .form-group { margin-bottom: 15px; }
-        #result-box { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #007BFF; display: none; white-space: pre-wrap;}
-        #loading { display: none; color: #007BFF; font-weight: bold; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Explainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #07080d;
+      --bg2:         #0d0f19;
+      --surface:     rgba(255,255,255,0.04);
+      --surface-h:   rgba(255,255,255,0.07);
+      --border:      rgba(255,255,255,0.08);
+      --border-h:    rgba(99,179,255,0.35);
+      --accent:      #4f8eff;
+      --accent2:     #9b6dff;
+      --green:       #36d68f;
+      --red:         #ff5e73;
+      --amber:       #ffc34d;
+      --text:        #e8eaf2;
+      --muted:       #6b7280;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --glow:        0 0 28px rgba(79,142,255,0.18);
+      --shadow:      0 8px 32px rgba(0,0,0,0.55);
+      --transition:  all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated Background ─────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79,142,255,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 85%, rgba(155,109,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Layout ──────────────────────────────────── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────── */
+    .header { text-align: center; margin-bottom: 48px; }
+
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px;
+      background: rgba(79,142,255,0.12);
+      border: 1px solid rgba(79,142,255,0.25);
+      border-radius: 999px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .header-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(1.4); }
+    }
+
+    .header h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 700; letter-spacing: -0.02em; line-height: 1.2;
+      background: linear-gradient(135deg, #e8eaf2 30%, var(--accent) 70%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .header p {
+      color: var(--muted); font-size: 15px; max-width: 480px; margin: 0 auto; line-height: 1.6;
+    }
+
+    /* ── Card ────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .card + .card { margin-top: 20px; }
+
+    /* ── Section Label ───────────────────────────── */
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── Drop Zone ───────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(79,142,255,0.06);
+      box-shadow: 0 0 0 4px rgba(79,142,255,0.08);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+
+    .dz-icon {
+      width: 52px; height: 52px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 20px rgba(79,142,255,0.3);
+    }
+
+    .drop-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .drop-zone p  { font-size: 13px; color: var(--muted); }
+
+    .file-preview {
+      display: none; align-items: center; gap: 14px;
+      background: rgba(79,142,255,0.08); border: 1px solid rgba(79,142,255,0.2);
+      border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 16px;
+    }
+
+    .file-preview.show { display: flex; }
+
+    .fp-icon { font-size: 26px; flex-shrink: 0; }
+    .fp-name { font-weight: 600; font-size: 14px; word-break: break-all; }
+    .fp-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .fp-remove {
+      margin-left: auto; flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 6px;
+      background: rgba(255,94,115,0.12); border: 1px solid rgba(255,94,115,0.25);
+      color: var(--red); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition); line-height: 1;
+    }
+    .fp-remove:hover { background: rgba(255,94,115,0.25); }
+
+    /* ── Settings Grid ───────────────────────────── */
+    .settings-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media(max-width:560px){ .settings-grid { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface-h); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+    }
+    .toggle-info { display: flex; flex-direction: column; gap: 3px; }
+    .toggle-info strong { font-size: 14px; font-weight: 600; }
+    .toggle-info span { font-size: 12px; color: var(--muted); }
+    .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .slider-track {
+      position: absolute; inset: 0; cursor: pointer;
+      background: rgba(255,255,255,0.1); border-radius: 999px;
+      transition: var(--transition);
+    }
+    .slider-track::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; border-radius: 50%;
+      left: 3px; top: 3px;
+      background: #fff; transition: var(--transition);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+    .switch input:checked + .slider-track { background: var(--accent); }
+    .switch input:checked + .slider-track::before { transform: translateX(20px); }
+
+    /* Select */
+    .styled-select {
+      appearance: none;
+      background: var(--surface-h) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text); padding: 11px 36px 11px 14px;
+      font-family: inherit; font-size: 14px; cursor: pointer;
+      transition: var(--transition); width: 100%;
+    }
+    .styled-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,255,0.15); }
+
+    /* Number input */
+    .styled-input {
+      background: var(--surface-h); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      padding: 11px 14px; font-family: inherit; font-size: 14px;
+      transition: var(--transition); width: 100%;
+    }
+    .styled-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,255,0.15); }
+    .styled-input::placeholder { color: var(--muted); }
+
+    /* Slider */
+    .slider-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; }
+    .slider-val {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: var(--accent); background: rgba(79,142,255,0.12);
+      padding: 2px 10px; border-radius: 6px;
+    }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: var(--border); border-radius: 999px; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(79,142,255,0.5); cursor: pointer;
+    }
+
+    /* Advanced collapsible */
+    .advanced-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 10px 0; user-select: none; width: fit-content;
+    }
+    .advanced-toggle:hover { color: var(--text); }
+    .adv-arrow {
+      display: inline-block; transition: transform 0.2s;
+      font-size: 10px;
+    }
+    .advanced-toggle.open .adv-arrow { transform: rotate(180deg); }
+    .advanced-body { display: none; margin-top: 14px; }
+    .advanced-body.open { display: block; }
+
+    .mono-input {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+
+    /* ── Submit Button ────────────────────────────── */
+    .btn-submit {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: inherit; font-size: 15px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.01em;
+      box-shadow: 0 6px 24px rgba(79,142,255,0.35);
+      transition: var(--transition); position: relative; overflow: hidden;
+    }
+    .btn-submit::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .btn-submit:hover:not(:disabled)::before { opacity: 1; }
+    .btn-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 32px rgba(79,142,255,0.5); }
+    .btn-submit:active:not(:disabled) { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    /* ── Processing Steps ─────────────────────────── */
+    #loading-panel {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    #loading-panel.show { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .steps { display: flex; flex-direction: column; gap: 10px; }
+
+    .step {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; border-radius: var(--radius-sm);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .step.active { border-color: rgba(79,142,255,0.3); background: rgba(79,142,255,0.07); }
+    .step.done   { border-color: rgba(54,214,143,0.3); background: rgba(54,214,143,0.06); }
+
+    .step-icon {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+      background: var(--surface-h);
+      transition: var(--transition);
+    }
+    .step.active .step-icon { background: rgba(79,142,255,0.2); }
+    .step.done   .step-icon { background: rgba(54,214,143,0.2); }
+
+    .step-text { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; }
+    .step-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .step-status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+    .step.active .step-status { background: rgba(79,142,255,0.15); color: var(--accent); }
+    .step.done   .step-status { background: rgba(54,214,143,0.15); color: var(--green); }
+    .step.pending .step-status { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid rgba(79,142,255,0.3);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result Panel ─────────────────────────────── */
+    #result-panel {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    #result-panel.show { display: block; }
+
+    .result-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab-btn {
+      padding: 8px 18px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: var(--transition);
+    }
+    .tab-btn:hover { border-color: var(--border-h); color: var(--text); }
+    .tab-btn.active {
+      background: rgba(79,142,255,0.12); border-color: rgba(79,142,255,0.35);
+      color: var(--accent);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+
+    /* Report */
+    .report-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 24px;
+      font-size: 14px; line-height: 1.75; color: #d1d5e0;
+      max-height: 520px; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .report-box::-webkit-scrollbar { width: 5px; }
+    .report-box::-webkit-scrollbar-track { background: transparent; }
+    .report-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* report markdown-lite rendering */
+    .report-box h1, .report-box h2, .report-box h3 {
+      color: var(--text); font-weight: 700; margin: 1.2em 0 0.4em;
+    }
+    .report-box h1 { font-size: 20px; }
+    .report-box h2 { font-size: 17px; }
+    .report-box h3 { font-size: 15px; color: var(--accent); }
+    .report-box strong { color: var(--text); font-weight: 600; }
+    .report-box code {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      background: rgba(255,255,255,0.07); padding: 1px 6px; border-radius: 4px;
+    }
+    .report-box ul { padding-left: 20px; }
+    .report-box li { margin: 4px 0; }
+
+    /* Vision insights */
+    .insight-list { display: flex; flex-direction: column; gap: 10px; }
+    .insight-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--surface-h); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+    }
+    .insight-num {
+      width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+      background: rgba(155,109,255,0.2); color: var(--accent2);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .insight-text { font-size: 13px; line-height: 1.6; color: #c8cbd8; }
+
+    .empty-state {
+      text-align: center; padding: 40px;
+      color: var(--muted); font-size: 14px;
+    }
+    .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; }
+
+    /* Metadata chips */
+    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .meta-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface-h); border: 1px solid var(--border);
+      border-radius: 999px; padding: 5px 12px; font-size: 12px;
+    }
+    .meta-chip span { color: var(--muted); }
+    .meta-chip strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+    /* Audio */
+    .audio-wrap {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 24px; text-align: center;
+    }
+    .audio-wrap audio { width: 100%; margin-top: 12px; }
+    .audio-no { color: var(--muted); font-size: 14px; }
+
+    /* Copy button */
+    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 8px; }
+    .btn-sm {
+      padding: 6px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--surface-h);
+      color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-sm:hover { border-color: var(--border-h); color: var(--text); }
+    .btn-sm.copied { color: var(--green); border-color: rgba(54,214,143,0.3); }
+
+    /* ── Alert ───────────────────────────────────── */
+    .alert {
+      display: none; padding: 14px 18px;
+      border-radius: var(--radius-sm); margin-bottom: 16px;
+      font-size: 14px; animation: fadeIn 0.25s ease;
+    }
+    .alert.show { display: flex; align-items: flex-start; gap: 10px; }
+    .alert-error { background: rgba(255,94,115,0.1); border: 1px solid rgba(255,94,115,0.2); color: #ff8ea0; }
+    .alert-icon { font-size: 16px; flex-shrink: 0; }
+    .alert-body { flex: 1; line-height: 1.5; }
+    .alert-close { cursor: pointer; opacity: 0.6; font-size: 18px; line-height: 1; }
+    .alert-close:hover { opacity: 1; }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>📄 Agentic Document & Diagram Explainer</h2>
-        <p>Upload a file to route through the local Ollama LLM and custom PyTorch Vision model.</p>
-        
-        <form id="uploadForm">
-            <div class="form-group">
-                <input type="file" id="document" name="document" required>
-            </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="web_search" name="web_search" value="true" checked>
-                    Enable Tavily Web Search
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <label>Output Format: </label>
-                <select id="output_format" name="output_format">
-                    <option value="text">Text Report</option>
-                    <option value="audio">Speech (Audio)</option>
-                </select>
-            </div>
+  <div class="page">
 
-            <div class="form-group">
-                <label for="conf_threshold">Confidence Threshold (0-1): </label>
-                <input type="number" id="conf_threshold" name="conf_threshold" min="0" max="1" step="0.01" value="0.05">
-            </div>
-
-            <div class="form-group">
-                <label for="anchor_priors">Anchor Priors (JSON): </label>
-                <input type="text" id="anchor_priors" name="anchor_priors" value='[[0.2,0.2],[0.35,0.25],[0.5,0.4]]'>
-            </div>
-
-            <button type="submit">Generate Explanation</button>
-        </form>
-
-        <p id="loading">Agents are processing... Please wait.</p>
-        
-        <div id="result-box">
-            <h3>Final Compiled Report</h3>
-            <div id="report-content"></div>
-        </div>
+    <!-- Header -->
+    <div class="header">
+      <div class="header-badge"><div class="dot"></div> AI Powered</div>
+      <h1>Agentic Document Explainer</h1>
+      <p>Upload a document or image to route through the local Ollama LLM and custom PyTorch vision model for deep analysis.</p>
     </div>
 
-    <script>
-        document.getElementById('uploadForm').onsubmit = async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            formData.append('document', document.getElementById('document').files[0]);
-            formData.append('web_search', document.getElementById('web_search').checked);
-            formData.append('output_format', document.getElementById('output_format').value);
-            formData.append('conf_threshold', document.getElementById('conf_threshold').value);
-            formData.append('anchor_priors', document.getElementById('anchor_priors').value);
+    <!-- Error alert -->
+    <div class="alert alert-error" id="alert">
+      <div class="alert-icon">⚠</div>
+      <div class="alert-body" id="alert-body"></div>
+      <div class="alert-close" onclick="closeAlert()">×</div>
+    </div>
 
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result-box').style.display = 'none';
+    <!-- Upload Card -->
+    <div class="card">
+      <div class="section-label">Upload File</div>
 
-            try {
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    document.getElementById('report-content').innerText = data.report;
-                    document.getElementById('result-box').style.display = 'block';
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch (err) {
-                alert('Request failed: ' + err);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        };
-    </script>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="document" accept=".pdf,.pptx,.csv,.xlsx,.xls,.jpg,.jpeg,.png" />
+        <div class="dz-icon">📄</div>
+        <h3>Drop your file here</h3>
+        <p>Supports PDF, PPTX, CSV, XLSX, JPG, PNG &nbsp;·&nbsp; Max 16 MB</p>
+      </div>
+
+      <div class="file-preview" id="filePreview">
+        <div class="fp-icon" id="fpIcon">📄</div>
+        <div>
+          <div class="fp-name" id="fpName"></div>
+          <div class="fp-size" id="fpSize"></div>
+        </div>
+        <button class="fp-remove" id="fpRemove" title="Remove file">×</button>
+      </div>
+    </div>
+
+    <!-- Settings Card -->
+    <div class="card">
+      <div class="section-label">Settings</div>
+
+      <div class="settings-grid">
+
+        <!-- Web Search Toggle -->
+        <div style="grid-column: 1/-1;">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <strong>Tavily Web Search</strong>
+              <span>Augment analysis with live web results</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="web_search" checked />
+              <span class="slider-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Output Format -->
+        <div class="field">
+          <label for="output_format">Output Format</label>
+          <select class="styled-select" id="output_format">
+            <option value="text">📝 Text Report</option>
+            <option value="audio">🔊 Speech (Audio)</option>
+          </select>
+        </div>
+
+        <!-- Confidence Threshold -->
+        <div class="field">
+          <label>Confidence Threshold</label>
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span style="font-size:12px;color:var(--muted)">Vision model cutoff</span>
+              <span class="slider-val" id="conf-display">0.05</span>
+            </div>
+            <input type="range" id="conf_threshold" min="0" max="1" step="0.01" value="0.05" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Advanced -->
+      <div class="advanced-toggle" id="advToggle" onclick="toggleAdvanced()">
+        <span class="adv-arrow">▼</span> Advanced Options
+      </div>
+      <div class="advanced-body" id="advBody">
+        <div class="field">
+          <label for="anchor_priors">Anchor Priors (JSON)</label>
+          <input class="styled-input mono-input" type="text" id="anchor_priors"
+            value='[[0.2,0.2],[0.35,0.25],[0.5,0.4]]'
+            placeholder='[[0.2,0.2],[0.35,0.25],[0.5,0.4]]' />
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="card" style="padding: 20px;">
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">
+        <span id="btnLabel">⚡ Generate Explanation</span>
+      </button>
+    </div>
+
+    <!-- Processing -->
+    <div class="card" id="loading-panel">
+      <div class="section-label">Processing</div>
+      <div class="steps">
+        <div class="step" id="step-ingest">
+          <div class="step-icon">📥</div>
+          <div class="step-text">
+            <div class="step-title">Ingesting File</div>
+            <div class="step-sub">Parsing content and extracting structure</div>
+          </div>
+          <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step-vision">
+          <div class="step-icon">👁</div>
+          <div class="step-text">
+            <div class="step-title">Vision Analysis</div>
+            <div class="step-sub">CBAM ResNet processing images</div>
+          </div>
+          <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step-llm">
+          <div class="step-icon">🧠</div>
+          <div class="step-text">
+            <div class="step-title">LLM Explanation</div>
+            <div class="step-sub">Ollama generating insights via ChromaDB</div>
+          </div>
+          <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step-compile">
+          <div class="step-icon">📑</div>
+          <div class="step-text">
+            <div class="step-title">Compiling Report</div>
+            <div class="step-sub">Merging all agent outputs</div>
+          </div>
+          <div class="step-status">Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card" id="result-panel">
+      <div class="section-label">Results</div>
+
+      <div class="result-tabs">
+        <button class="tab-btn active" onclick="switchTab('report')">📋 Report</button>
+        <button class="tab-btn" onclick="switchTab('vision')">🔍 Vision Insights</button>
+        <button class="tab-btn" onclick="switchTab('audio')">🔊 Audio</button>
+        <button class="tab-btn" onclick="switchTab('meta')">⚙ Metadata</button>
+      </div>
+
+      <!-- Report Tab -->
+      <div class="tab-pane active" id="tab-report">
+        <div class="toolbar">
+          <button class="btn-sm" id="copyBtn" onclick="copyReport()">⧉ Copy</button>
+        </div>
+        <div class="report-box" id="report-content"></div>
+      </div>
+
+      <!-- Vision Tab -->
+      <div class="tab-pane" id="tab-vision">
+        <div class="insight-list" id="vision-list"></div>
+      </div>
+
+      <!-- Audio Tab -->
+      <div class="tab-pane" id="tab-audio">
+        <div class="audio-wrap" id="audio-wrap">
+          <div class="audio-no">Audio output was not selected or generation failed.</div>
+        </div>
+      </div>
+
+      <!-- Meta Tab -->
+      <div class="tab-pane" id="tab-meta">
+        <div class="meta-row" id="meta-row"></div>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+
+  <script>
+    // ── File Handling ──────────────────────────────
+    const dropZone  = document.getElementById('dropZone');
+    const fileInput = document.getElementById('document');
+    const preview   = document.getElementById('filePreview');
+
+    const FILE_ICONS = {
+      pdf: '📕', pptx: '📊', csv: '📊', xlsx: '📊', xls: '📊',
+      jpg: '🖼', jpeg: '🖼', png: '🖼'
+    };
+
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+      return (b/(1024*1024)).toFixed(2) + ' MB';
+    }
+
+    function showFilePreview(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      document.getElementById('fpIcon').textContent = FILE_ICONS[ext] || '📄';
+      document.getElementById('fpName').textContent = file.name;
+      document.getElementById('fpSize').textContent = formatBytes(file.size);
+      preview.classList.add('show');
+      dropZone.querySelector('h3').textContent = 'File selected';
+    }
+
+    function clearFile() {
+      fileInput.value = '';
+      preview.classList.remove('show');
+      dropZone.querySelector('h3').textContent = 'Drop your file here';
+    }
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) showFilePreview(fileInput.files[0]);
+    });
+
+    document.getElementById('fpRemove').addEventListener('click', clearFile);
+
+    ['dragenter','dragover'].forEach(ev => {
+      dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(ev => {
+      dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    });
+    dropZone.addEventListener('drop', e => {
+      const f = e.dataTransfer.files[0];
+      if (f) { const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files; showFilePreview(f); }
+    });
+
+    // ── Confidence Slider ──────────────────────────
+    const slider   = document.getElementById('conf_threshold');
+    const confDisp = document.getElementById('conf-display');
+    slider.addEventListener('input', () => { confDisp.textContent = parseFloat(slider.value).toFixed(2); });
+
+    // ── Advanced Toggle ────────────────────────────
+    function toggleAdvanced() {
+      const btn  = document.getElementById('advToggle');
+      const body = document.getElementById('advBody');
+      btn.classList.toggle('open');
+      body.classList.toggle('open');
+    }
+
+    // ── Alert ──────────────────────────────────────
+    function showAlert(msg) {
+      document.getElementById('alert-body').textContent = msg;
+      document.getElementById('alert').classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function closeAlert() {
+      document.getElementById('alert').classList.remove('show');
+    }
+
+    // ── Steps ──────────────────────────────────────
+    const STEPS = ['ingest','vision','llm','compile'];
+    let stepTimer, currentStep = 0;
+
+    function setStep(idx, status) {
+      const el    = document.getElementById('step-' + STEPS[idx]);
+      const badge = el.querySelector('.step-status');
+      el.className = 'step ' + status;
+      if (status === 'active') {
+        badge.innerHTML = '<span class="spinner"></span>';
+      } else if (status === 'done') {
+        badge.textContent = '✓ Done';
+      } else {
+        badge.textContent = 'Pending';
+      }
+    }
+
+    function resetSteps() {
+      STEPS.forEach((_, i) => setStep(i, 'pending'));
+      currentStep = 0;
+    }
+
+    function advanceSteps() {
+      if (currentStep < STEPS.length) {
+        if (currentStep > 0) setStep(currentStep - 1, 'done');
+        setStep(currentStep, 'active');
+        currentStep++;
+        stepTimer = setTimeout(advanceSteps, 3200);
+      }
+    }
+
+    function completeSteps() {
+      clearTimeout(stepTimer);
+      STEPS.forEach((_, i) => setStep(i, 'done'));
+    }
+
+    // ── Tabs ───────────────────────────────────────
+    const TABS = ['report','vision','audio','meta'];
+    function switchTab(name) {
+      TABS.forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === name);
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+          btn.classList.toggle('active', TABS[i] === name);
+        });
+      });
+    }
+
+    // ── Copy Report ────────────────────────────────
+    function copyReport() {
+      const txt = document.getElementById('report-content').innerText;
+      navigator.clipboard.writeText(txt).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '⧉ Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    // ── Render markdown-lite ───────────────────────
+    function renderMarkdown(text) {
+      const escaped = text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return escaped
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        .replace(/\n/g, '<br />');
+    }
+
+    // ── Submit ─────────────────────────────────────
+    async function submitForm() {
+      closeAlert();
+      const file = fileInput.files[0];
+      if (!file) { showAlert('Please select a file before generating.'); return; }
+
+      const anchorRaw = document.getElementById('anchor_priors').value.trim();
+      if (anchorRaw) {
+        try { const p = JSON.parse(anchorRaw); if (!Array.isArray(p)) throw 0; }
+        catch { showAlert('Invalid Anchor Priors JSON. Example: [[0.2,0.2],[0.35,0.25]]'); return; }
+      }
+
+      const formData = new FormData();
+      formData.append('document',       file);
+      formData.append('web_search',     document.getElementById('web_search').checked);
+      formData.append('output_format',  document.getElementById('output_format').value);
+      formData.append('conf_threshold', slider.value);
+      formData.append('anchor_priors',  anchorRaw);
+
+      const btn   = document.getElementById('submitBtn');
+      const label = document.getElementById('btnLabel');
+      btn.disabled = true;
+      label.innerHTML = '<span class="spinner"></span>&nbsp; Processing&hellip;';
+
+      document.getElementById('result-panel').classList.remove('show');
+      const lp = document.getElementById('loading-panel');
+      lp.classList.add('show');
+      resetSteps();
+      advanceSteps();
+
+      lp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      try {
+        const res  = await fetch('/process', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        completeSteps();
+
+        if (!res.ok) { showAlert(data.error || 'Server error. Please try again.'); return; }
+
+        // Report
+        document.getElementById('report-content').innerHTML = renderMarkdown(data.report || '');
+
+        // Vision Insights
+        const vList = document.getElementById('vision-list');
+        vList.innerHTML = '';
+        const insights = data.vision_insights || [];
+        if (insights.length) {
+          insights.forEach((ins, i) => {
+            vList.innerHTML += `
+              <div class="insight-item">
+                <div class="insight-num">${i+1}</div>
+                <div class="insight-text">${ins}</div>
+              </div>`;
+          });
+        } else {
+          vList.innerHTML = '<div class="empty-state"><div class="es-icon">🔍</div>No vision insights returned — file may be text-only.</div>';
+        }
+
+        // Audio
+        const audioWrap = document.getElementById('audio-wrap');
+        if (data.audio_file) {
+          audioWrap.innerHTML = `
+            <p style="font-size:14px;color:var(--muted);margin-bottom:12px">Audio report generated successfully.</p>
+            <audio controls><source src="/output/${data.audio_file}" type="audio/mpeg">Your browser does not support audio.</audio>`;
+        } else {
+          audioWrap.innerHTML = '<div class="audio-no">Audio output was not selected or generation failed.</div>';
+        }
+
+        // Metadata
+        const metaRow = document.getElementById('meta-row');
+        metaRow.innerHTML = `
+          <div class="meta-chip"><span>Format</span><strong>${data.format || 'text'}</strong></div>
+          <div class="meta-chip"><span>Confidence</span><strong>${data.conf_threshold ?? slider.value}</strong></div>
+          <div class="meta-chip"><span>Web Search</span><strong>${document.getElementById('web_search').checked ? 'Enabled' : 'Disabled'}</strong></div>
+          <div class="meta-chip"><span>Detections</span><strong>${(data.detected_images || []).length}</strong></div>
+          <div class="meta-chip"><span>Anchors</span><strong>${JSON.stringify(data.anchor_priors || [])}</strong></div>`;
+
+        document.getElementById('result-panel').classList.add('show');
+        switchTab('report');
+        document.getElementById('result-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch (err) {
+        completeSteps();
+        showAlert('Request failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        label.textContent = '⚡ Generate Explanation';
+      }
+    }
+  </script>
 </body>
 </html>
