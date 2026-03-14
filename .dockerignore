@@ -1,0 +1,11 @@
+.git
+.gitignore
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+output/
+data/chroma_db/
+data/temp_images/

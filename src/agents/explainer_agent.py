@@ -9,7 +9,7 @@ from src.tools.vector_store import store_text_in_local_db, query_vector_store
 
 
 def _get_local_llm() -> Ollama:
-    return Ollama(model=config.OLLAMA_MODEL_NAME)
+    return Ollama(model=config.OLLAMA_MODEL_NAME, base_url=config.OLLAMA_BASE_URL)
 
 
 def explain_with_ollama(raw_text: str, enable_web_search: bool = True) -> str:

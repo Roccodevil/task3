@@ -31,7 +31,7 @@ data/temp_images/
 output/
 
 # Optional large/local model artifacts
-
+task3-app-latest.tar
 
 # Logs and temp files
 *.log

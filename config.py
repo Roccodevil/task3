@@ -19,6 +19,7 @@ VISION_MODEL_PATH = os.path.join(MODELS_DIR, "cbam_resnet_no_entry_v1 .pth")
 VISION_CONF_THRESHOLD = 0.05
 VISION_ANCHOR_PRIORS = [[0.2, 0.2], [0.35, 0.25], [0.5, 0.4]]
 OLLAMA_MODEL_NAME = "llama3"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # --- API KEYS ---
